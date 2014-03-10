@@ -14,10 +14,10 @@ SET(CMAKE_BUILD_TYPE Release)
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
-
-set(CMAKE_CXX_FLAGS "-O3 -fopenmp -std=c++0x -Wno-deprecated")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -std=c++0x")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fopenmp -std=c++0x -msse4.2 -mfpmath=sse -mtune=native -march=native -Wno-deprecated")
+#These flags might not work on every system, especially the release flags, comment out as needed
+set(CMAKE_CXX_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -mfpmath=sse -mtune=native -march=native")
 
 
 add_executable(${PROJECT_NAME}
