@@ -10,7 +10,7 @@
 #include <sstream>
 #include <limits>
 
-void main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
   
   if(argc != 4) {
     std::cout << "SDFGen - A utility for converting closed oriented triangle meshes into grid-based signed distance fields.\n";
@@ -120,5 +120,5 @@ void main(int argc, char* argv[]) {
   outfile.close();
   std::cout << "Processing complete.\n";
 
-
+return 0;
 }
