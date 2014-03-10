@@ -2,6 +2,7 @@
 #define ARRAY1_H
 
 #include <algorithm>
+#include <cstring>
 #include <cassert>
 #include <climits>
 #include <cstdlib>
