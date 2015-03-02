@@ -4,6 +4,16 @@
 //This code is public domain. Feel free to mess with it, let me know if you like it.
 
 #include "makelevelset3.h"
+#include "config.h"
+
+#ifdef HAVE_VTK
+  #include <vtkImageData.h>
+  #include <vtkFloatArray.h>
+  #include <vtkXMLImageDataWriter.h>
+  #include <vtkPointData.h>
+  #include <vtkSmartPointer.h>
+#endif
+
 
 #include <fstream>
 #include <iostream>
@@ -69,7 +79,9 @@ int main(int argc, char* argv[]) {
   std::vector<Vec3ui> faceList;
   while(!infile.eof()) {
     std::getline(infile, line);
-    if(line.substr(0,1) == std::string("v")) {
+
+    //.obj files sometimes contain vertex normals indicated by "vn"
+    if(line.substr(0,1) == std::string("v") && line.substr(0,2) != std::string("vn")){
       std::stringstream data(line);
       char c;
       Vec3f point;
@@ -83,6 +95,10 @@ int main(int argc, char* argv[]) {
       int v0,v1,v2;
       data >> c >> v0 >> v1 >> v2;
       faceList.push_back(Vec3ui(v0-1,v1-1,v2-1));
+    }
+    else if( line.substr(0,2) == std::string("vn") ){
+      std::cerr << "Obj-loader is not able to parse vertex normals, please strip them from the input file. \n";
+      exit(-2); 
     }
     else {
       ++ignored_lines; 
@@ -107,17 +123,57 @@ int main(int argc, char* argv[]) {
   Array3f phi_grid;
   make_level_set3(faceList, vertList, min_box, dx, sizes[0], sizes[1], sizes[2], phi_grid);
 
-  //Very hackily strip off file suffix.
-  std::string outname = filename.substr(0, filename.size()-4) + std::string(".sdf");
-  std::cout << "Writing results to: " << outname << "\n";
-  std::ofstream outfile( outname.c_str());
-  outfile << phi_grid.ni << " " << phi_grid.nj << " " << phi_grid.nk << std::endl;
-  outfile << min_box[0] << " " << min_box[1] << " " << min_box[2] << std::endl;
-  outfile << dx << std::endl;
-  for(unsigned int i = 0; i < phi_grid.a.size(); ++i) {
-    outfile << phi_grid.a[i] << std::endl;
-  }
-  outfile.close();
+  std::string outname;
+
+  #ifdef HAVE_VTK
+    // If compiled with VTK, we can directly output a volumetric image format instead
+    //Very hackily strip off file suffix.
+    outname = filename.substr(0, filename.size()-4) + std::string(".vti");
+    std::cout << "Writing results to: " << outname << "\n";
+    vtkSmartPointer<vtkImageData> output_volume = vtkSmartPointer<vtkImageData>::New();
+
+    output_volume->SetDimensions(phi_grid.ni ,phi_grid.nj ,phi_grid.nk);
+    output_volume->SetOrigin( phi_grid.ni*dx/2, phi_grid.nj*dx/2,phi_grid.nk*dx/2);
+    output_volume->SetSpacing(dx,dx,dx);
+
+    vtkSmartPointer<vtkFloatArray> distance = vtkSmartPointer<vtkFloatArray>::New();
+    
+    distance->SetNumberOfTuples(phi_grid.a.size());
+    
+    output_volume->GetPointData()->AddArray(distance);
+    distance->SetName("Distance");
+
+    for(unsigned int i = 0; i < phi_grid.a.size(); ++i) {
+      distance->SetValue(i, phi_grid.a[i]);
+    }
+
+    vtkSmartPointer<vtkXMLImageDataWriter> writer =
+    vtkSmartPointer<vtkXMLImageDataWriter>::New();
+    writer->SetFileName(outname.c_str());
+
+    #if VTK_MAJOR_VERSION <= 5
+      writer->SetInput(output_volume);
+    #else
+      writer->SetInputData(output_volume);
+    #endif
+    writer->Write();
+
+  #else
+    // if VTK support is missing, default back to the original ascii file-dump.
+    //Very hackily strip off file suffix.
+    outname = filename.substr(0, filename.size()-4) + std::string(".sdf");
+    std::cout << "Writing results to: " << outname << "\n";
+    
+    std::ofstream outfile( outname.c_str());
+    outfile << phi_grid.ni << " " << phi_grid.nj << " " << phi_grid.nk << std::endl;
+    outfile << min_box[0] << " " << min_box[1] << " " << min_box[2] << std::endl;
+    outfile << dx << std::endl;
+    for(unsigned int i = 0; i < phi_grid.a.size(); ++i) {
+      outfile << phi_grid.a[i] << std::endl;
+    }
+    outfile.close();
+  #endif
+
   std::cout << "Processing complete.\n";
 
 return 0;
