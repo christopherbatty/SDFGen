@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
     vtkSmartPointer<vtkImageData> output_volume = vtkSmartPointer<vtkImageData>::New();
 
     output_volume->SetDimensions(phi_grid.ni ,phi_grid.nj ,phi_grid.nk);
-    output_volume->SetOrigin( phi_grid.ni*dx/2, phi_grid.nj*dx/2,phi_grid.nk*dx/2);
+    output_volume->SetOrigin(min_box[0],min_box[1],min_box[2]);
     output_volume->SetSpacing(dx,dx,dx);
 
     vtkSmartPointer<vtkFloatArray> distance = vtkSmartPointer<vtkFloatArray>::New();
